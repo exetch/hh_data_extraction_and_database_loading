@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "hh-data-extraction-and-database-loading"
+version = "0.1.0"
+description = ""
+authors = ["exetch <gassemark@gmail.com>"]
+readme = "README.md"
+packages = [{include = "hh_data_extraction_and_database_loading"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+requests = "^2.31.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
