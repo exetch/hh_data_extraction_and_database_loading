@@ -1,71 +1,56 @@
 import os
-import json
 from dotenv import load_dotenv
-import requests
-import psycopg2
+from database_manager import DatabaseManager
+from userinterface import UserInterface
 from hh_api_client import HeadHunterAPI
-from population import get_regions_by_group
+from utils import get_regions_by_group, feth_currency_data
 
+# Загрузка переменных окружения
+load_dotenv()
+
+DB_HOST = os.getenv('DB_HOST')
+DB_NAME = os.getenv('DB_NAME')
+DB_USER = os.getenv('DB_USER')
+DB_PASSWORD = os.getenv('DB_PASSWORD')
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
-UNIQUE_VACANCIES = 'unique_vacancies.json'
-def check_existing_employer(employer_id):
-    cursor = conn.cursor()
-    select_query = "SELECT employer_id FROM employers WHERE employer_id = %s"
-    cursor.execute(select_query, (employer_id,))
-    result = cursor.fetchone()
-    cursor.close()
-    return result is not None
+AREAS = 'areas.json'
+INDUSTRIES = 'industries.json'
+def main():
+    db_manager = DatabaseManager(DB_HOST, DB_NAME, DB_USER, DB_PASSWORD)
+
+    db_manager.create_database()
+
+    db_manager.create_tables()
+
+    db_manager.fill_regions_from_json(AREAS)
+    db_manager.fill_cities_from_json(AREAS)
+    db_manager.fill_industries_from_json(INDUSTRIES)
+    areas_data = get_regions_by_group()
+    currencies = feth_currency_data(USER_AGENT)
+    while True:
+        hh_api = HeadHunterAPI(USER_AGENT)
+        company_names = UserInterface.get_company_names()
+        hh_api.get_companies_info(company_names)
+        if not hh_api.processed_companies:
+            print(f"К сожалению, по этому запросу ничего не удалось найти, попробеум еще раз?")
+            continue
+        company_ids = UserInterface.get_companies_ids(hh_api.processed_companies)
+        new_ids = [company_id for company_id in company_ids if db_manager.check_employer_exists_by_id(company_id)]
+        if new_ids:
+            companies_info = hh_api.fetch_company_info(new_ids)
+            db_manager.fill_employers_from_info(companies_info)
+            hh_api.get_vacancies_by_areas(areas_data, new_ids)
+            # print(hh_api.all_vacancies)
+            db_manager.fill_vacancies(hh_api.all_vacancies, currencies)
+        user_input = input("Хотите добавить еще компаний в базу данных? (да/нет): ").strip().lower()
+        if user_input != 'да':
+            break
+    company_vac = db_manager.get_companies_and_vacancies_count()
+    print(company_vac)
 
 
 if __name__ == "__main__":
-    load_dotenv()
-
-    DB_HOST = os.getenv('DB_HOST')
-    DB_NAME = os.getenv('DB_NAME')
-    DB_USER = os.getenv('DB_USER')
-    DB_PASSWORD = os.getenv('DB_PASSWORD')
-    conn = psycopg2.connect(database=DB_NAME, user=DB_USER, password=DB_PASSWORD, host=DB_HOST)
-
-    with open('best_employers_2022.json', 'r', encoding="utf-8") as json_file:
-        employer_ids = json.load(json_file)
-
-    with open('areas.json', 'r', encoding='utf-8') as areas_file:
-        areas_data = json.load(areas_file)
-
-    headers = {'User-Agent': USER_AGENT}
-
-    for employer_id in employer_ids:
-        if check_existing_employer(employer_id):
-            print(f"Employer with employer_id={employer_id} already exists, skipping...")
-            continue
-
-        api_url = f'https://api.hh.ru/employers/{employer_id}'
-        response = requests.get(api_url, headers=headers)
-
-        if response.status_code == 200:
-            company_data = response.json()
-            name = company_data.get('name', 'N/A')
-            site_url = company_data.get('site_url', 'N/A')
-            city = company_data.get('area', {}).get('name', 'N/A')
-            industries = company_data.get('industries', [])
-            industry = industries[0]['name'] if industries else 'N/A'
-
-            cursor = conn.cursor()
-            insert_query = "INSERT INTO employers (employer_id, name, site_url, city, industry) VALUES (%s, %s, %s, %s, %s)"
-            data_tuple = (employer_id, name, site_url, city, industry)
-            cursor.execute(insert_query, data_tuple)
-            conn.commit()
-            cursor.close()
-    hh_api = HeadHunterAPI(USER_AGENT, employer_ids)
-    regions_list = get_regions_by_group()
-
-
-    hh_api.get_vacancies_by_areas(regions_list)
-    hh_api.save_unique_vacancies_to_json(UNIQUE_VACANCIES)
-
-
-    conn.close()
-
+    main()
 
 
 

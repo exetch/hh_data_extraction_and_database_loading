@@ -19,7 +19,6 @@ def get_regions_by_group():
             population_data[subject]=population
 
     sorted_population_data = dict(sorted(population_data.items(), key=lambda x: x[1], reverse=True))
-
     num_groups = 10
     grouped_data = {}
     current_group = 1
@@ -54,3 +53,18 @@ def get_regions_by_group():
         regions_by_group[group] = region_ids
 
     return regions_by_group.values()
+
+
+def feth_currency_data(user_agent):
+    params = {
+        "locale": "RU"
+    }
+    headers = {'User-Agent': user_agent}
+    url = f'https://api.hh.ru/dictionaries'
+    response = requests.get(url, headers=headers, params=params)
+    currencies = {}
+    if response.status_code == 200:
+        response_data = response.json()
+        for currency in response_data.get('currency', []):
+            currencies[currency['code']] = currency['rate']
+        return currencies

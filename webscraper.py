@@ -38,7 +38,7 @@ if __name__ == "__main__":
 
             all_company_ids.extend(company_ids)
 
-        with open('best_employers_2022.json', 'w', encoding='utf-8') as json_file:
+        with open('employers_ids_all.json', 'w', encoding='utf-8') as json_file:
             json.dump(all_company_ids, json_file, ensure_ascii=False, indent=4)
 
     finally:
