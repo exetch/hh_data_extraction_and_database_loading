@@ -48,5 +48,5 @@
 ### Использование
  Запустите скрипт для запуска программы:
 ```bash
-poetry run python user_interface.py
+poetry run python main.py
 ```
