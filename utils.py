@@ -3,12 +3,13 @@ from typing import List, Dict, Optional
 import requests
 from bs4 import BeautifulSoup
 
-def get_regions_by_group() -> List[List[int]]:
+
+def get_regions_by_group(max_population) -> List[List[int]]:
     """
     Получает список с группами регионов, сгруппированных по населению.
     Данная группировка позволяет обойти ограничение на глубину выдачи вакансий по запросу к hh.ru,
     так как существует ограничение в 2000 вакансий на один запрос. Путем разбиения на группы
-    на основе населения, можно получить все вакансии по России.
+    на основе населения, можно получить все вакансии по России. Эту группировку можно кастомизировать увеличивая или уменьшая константу MAX_POPULATION
     Возвращает:
         List[List[int]]: Список списков идентификаторов регионов, сгруппированных по населению.
     """
@@ -25,7 +26,7 @@ def get_regions_by_group() -> List[List[int]]:
         if len(columns) >= 3:
             subject = columns[1].find("a").get("title")
             population = int(columns[2]["data-sort-value"])
-            population_data[subject]=population
+            population_data[subject] = population
 
     sorted_population_data = dict(sorted(population_data.items(), key=lambda x: x[1], reverse=True))
     grouped_data = {}
@@ -39,13 +40,14 @@ def get_regions_by_group() -> List[List[int]]:
         grouped_data[current_group][subject] = population
         current_population += population
 
-        if current_population >= 7000000:
+        if current_population >= max_population:
             current_group += 1
             current_population = 0
 
     with open('areas.json', 'r', encoding='utf-8') as areas_file:
         areas_data = json.load(areas_file)
     regions_by_group = {}
+
     def find_region_id(data: List[Dict[str, str]], region_name: str) -> Optional[int]:
         """
         Находит идентификатор региона по его имени.

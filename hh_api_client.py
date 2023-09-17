@@ -2,6 +2,7 @@ from time import sleep
 import requests
 from typing import List, Dict, Union, Tuple
 
+
 class HeadHunterAPI:
     """
     Класс для работы с API HeadHunter.
@@ -39,35 +40,42 @@ class HeadHunterAPI:
             if response.status_code == 200:
                 response_data = response.json()
                 total_ru = response_data.get('found', 0)
-            for num, area_ids in enumerate(areas_data, start=1):
-                page: int = 0
+                if response_data.get('items', []):
+                    employer_name = response_data.get('items', [])[0].get('employer').get('name')
+                    print(f"У работодателя {employer_name} доступно {total_ru} вакансий")
 
-                while True:
-                    sleep(0.5)
-                    params = {
-                        "employer_id": employer_id,
-                        "page": page,
-                        "per_page": per_page,
-                        "only_with_salary": True,
-                        "area": area_ids,
-                    }
-                    url = f'https://api.hh.ru/vacancies'
-                    response = requests.get(url, headers=self.headers, params=params)
+                    for num, area_ids in enumerate(areas_data, start=1):
+                        page: int = 0
 
-                    if response.status_code == 200:
-                        response_data = response.json()
-                        vacancies = response_data.get('items', [])
-                        total_region = response_data.get('found', 0)
-                        self.all_vacancies.extend(vacancies)
-                        print(f"Добавлено {len(self.all_vacancies)} вакансий из {total_ru}: группа регионов {num}, "
-                              f"страница {page + 1} из {total_region // 100 + 1} ")
-                        if total_region <= (page + 1) * per_page:
-                            break
-                        else:
-                            page += 1
-                    else:
-                        print(f"Запрос завершился с ошибкой: {response.status_code}")
-                        break
+                        while True:
+                            sleep(0.5)
+                            params = {
+                                "employer_id": employer_id,
+                                "page": page,
+                                "per_page": per_page,
+                                "only_with_salary": True,
+                                "area": area_ids,
+                            }
+                            url = f'https://api.hh.ru/vacancies'
+                            response = requests.get(url, headers=self.headers, params=params)
+
+                            if response.status_code == 200:
+                                response_data = response.json()
+                                vacancies = response_data.get('items', [])
+                                total_region = response_data.get('found', 0)
+                                self.all_vacancies.extend(vacancies)
+                                print(f"Добавлено {len(self.all_vacancies)} вакансий компании  из {total_ru}: группа регионов {num}, "
+                                      f"страница {page + 1} из {total_region // 100 + 1} ")
+                                if total_region <= (page + 1) * per_page:
+                                    break
+                                else:
+                                    page += 1
+                            else:
+                                print(f"Запрос завершился с ошибкой: {response.status_code}")
+                                break
+                else:
+                    print("Нет вакансий у этой компании")
+
 
     def get_companies_info(self, company_names: List[str]):
         """
@@ -136,6 +144,3 @@ class HeadHunterAPI:
                 response_data = response.json()
                 companies_info.append(response_data)
         return companies_info
-
-
-

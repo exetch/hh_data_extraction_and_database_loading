@@ -9,7 +9,7 @@ class UserInterface:
             list[str]: Список названий компаний, введенных пользователем (разделенных запятыми).
         """
         while True:
-            input_text = input("Введите запрос для поиска компаний по названию (можно несколько, разделяйте запятыми): ")
+            input_text = input("\nВведите запрос для поиска компаний по названию (можно несколько, разделяйте запятыми): ")
             if not input_text:
                 continue
             company_names = [name.strip() for name in input_text.split(',')]

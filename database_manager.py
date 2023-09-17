@@ -450,6 +450,7 @@ class DatabaseManager:
 
         except Exception as e:
             print("Ошибка при получении списка вакансий с высокой зарплатой:", e)
+
     def get_vacancies_with_keyword(self, keyword: str) -> List[Tuple[str, str, int, str]]:
         """
         Получает список вакансий с ключевым словом в названии.
