@@ -1,37 +1,46 @@
-import requests
-import json
 from time import sleep
-class HeadHunterAPI():
+import requests
+from typing import List, Dict, Union, Tuple
+
+class HeadHunterAPI:
     """
-        Класс для работы с API сайта HeadHunter.
+    Класс для работы с API HeadHunter.
     """
 
-    def __init__(self, user_agent):
+    def __init__(self, user_agent: str):
         """
         Конструктор класса.
 
-        Параметры:
-            user_agent (str): Заголовок User-Agent для запросов к API
+        Аргументы:
+            user_agent (str): Заголовок User-Agent для запросов к API.
         """
         self.processed_companies = {}
         self.user_agent = user_agent
         self.headers = {'User-Agent': self.user_agent}
         self.all_vacancies = []
-    def get_vacancies_by_areas(self, areas_data, employers_ids):
-        per_page = 100
+
+    def get_vacancies_by_areas(self, areas_data: List[int], employers_ids: List[int]):
+        """
+        Получение вакансий по регионам и ID работодателей.
+
+        Аргументы:
+            areas_data (List[int]): Список ID регионов.
+            employers_ids (List[int]): Список ID работодателей.
+        """
+        per_page: int = 100
         for employer_id in employers_ids:
             params = {
                 "locale": "RU",
                 "employer_id": employer_id,
                 "only_with_salary": True
             }
-            url = f'https://api.hh.ru/vacancies'
+            url: str = f'https://api.hh.ru/vacancies'
             response = requests.get(url, headers=self.headers, params=params)
             if response.status_code == 200:
                 response_data = response.json()
                 total_ru = response_data.get('found', 0)
             for num, area_ids in enumerate(areas_data, start=1):
-                page = 0
+                page: int = 0
 
                 while True:
                     sleep(0.5)
@@ -57,10 +66,16 @@ class HeadHunterAPI():
                         else:
                             page += 1
                     else:
-                        print(f"Request failed with status code: {response.status_code}")
+                        print(f"Запрос завершился с ошибкой: {response.status_code}")
                         break
 
-    def get_companies_info(self, company_names):
+    def get_companies_info(self, company_names: List[str]):
+        """
+        Получение информации о компаниях по названию.
+
+        Аргументы:
+            company_names (List[str]): Список названий компаний.
+        """
         total_processed = 0
         for company_name in company_names:
             params = {
@@ -87,19 +102,28 @@ class HeadHunterAPI():
                         company_id = response_data['id']
                         name = response_data['name']
                         city = response_data['area']['name']
-                        industry = response_data.get('industries', {})
-                        self.processed_companies[total_processed] = int(company_id), name
-                        if not industry:
-                            industry = "не указана"
+                        industry_info = response_data.get('industries', {})
+                        self.processed_companies[total_processed] = (int(company_id), name)
+                        if not industry_info:
+                            industry_info = "не указана"
                         else:
-                            industry = ', '.join(industry_info['name'] for industry_info in industry)
-                        print(f'{total_processed}. {name}, {city}. Отрасль - {industry}')
+                            industry_info = ', '.join(industry['name'] for industry in industry_info)
+                        print(f'{total_processed}. {name}, {city}. Отрасль - {industry_info}')
                     else:
-                        print(f"Request failed with status code: {response.status_code}")
+                        print(f"Запрос завершился с ошибкой: {response.status_code}")
             else:
-                print(f"Request failed with status code: {response.status_code}")
+                print(f"Запрос завершился с ошибкой: {response.status_code}")
 
-    def fetch_company_info(self, company_ids):
+    def fetch_company_info(self, company_ids: List[int]) -> List[Dict]:
+        """
+        Получение информации о компаниях по их ID.
+
+        Аргументы:
+            company_ids (List[int]): Список ID компаний.
+
+        Возвращает:
+            List[Dict]: Список словарей, содержащих информацию о компаниях.
+        """
         companies_info = []
         for company_id in company_ids:
             params = {
@@ -112,15 +136,6 @@ class HeadHunterAPI():
                 response_data = response.json()
                 companies_info.append(response_data)
         return companies_info
-    def feth_currency_data(self):
-        params = {
-            "locale": "RU"
-        }
-        url = f'https://api.hh.ru/dictionaries'
-        response = requests.get(url, headers=self.headers, params=params)
-        currencies = {}
-        if response.status_code == 200:
-            response_data = response.json()
-            for currency in response_data.get('currency', []):
-                currencies[currency['code']] = currency['rate']
-            return currencies
+
+
+
