@@ -10,8 +10,8 @@ packages = [{include = "hh_data_extraction_and_database_loading"}]
 python = "^3.11"
 requests = "^2.31.0"
 bs4 = "^0.0.1"
-selenium = "^4.11.2"
 psycopg2 = "^2.9.7"
+python-dotenv = "^1.0.0"
 
 
 [build-system]
