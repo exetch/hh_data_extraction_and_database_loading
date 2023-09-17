@@ -1,8 +1,18 @@
-import requests
 import json
+from typing import List, Dict, Optional
+import requests
 from bs4 import BeautifulSoup
 
-def get_regions_by_group():
+
+def get_regions_by_group(max_population) -> List[List[int]]:
+    """
+    Получает список с группами регионов, сгруппированных по населению.
+    Данная группировка позволяет обойти ограничение на глубину выдачи вакансий по запросу к hh.ru,
+    так как существует ограничение в 2000 вакансий на один запрос. Путем разбиения на группы
+    на основе населения, можно получить все вакансии по России. Эту группировку можно кастомизировать увеличивая или уменьшая константу MAX_POPULATION
+    Возвращает:
+        List[List[int]]: Список списков идентификаторов регионов, сгруппированных по населению.
+    """
     url = "https://ru.wikipedia.org/wiki/%D0%9D%D0%B0%D1%81%D0%B5%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5_%D1%81%D1%83%D0%B1%D1%8A%D0%B5%D0%BA%D1%82%D0%BE%D0%B2_%D0%A0%D0%BE%D1%81%D1%81%D0%B8%D0%B9%D1%81%D0%BA%D0%BE%D0%B9_%D0%A4%D0%B5%D0%B4%D0%B5%D1%80%D0%B0%D1%86%D0%B8%D0%B8"
 
     response = requests.get(url)
@@ -16,10 +26,9 @@ def get_regions_by_group():
         if len(columns) >= 3:
             subject = columns[1].find("a").get("title")
             population = int(columns[2]["data-sort-value"])
-            population_data[subject]=population
+            population_data[subject] = population
 
     sorted_population_data = dict(sorted(population_data.items(), key=lambda x: x[1], reverse=True))
-    num_groups = 10
     grouped_data = {}
     current_group = 1
     current_population = 0
@@ -31,14 +40,25 @@ def get_regions_by_group():
         grouped_data[current_group][subject] = population
         current_population += population
 
-        if current_population >= 14000000 and current_group < num_groups:
+        if current_population >= max_population:
             current_group += 1
             current_population = 0
 
     with open('areas.json', 'r', encoding='utf-8') as areas_file:
         areas_data = json.load(areas_file)
     regions_by_group = {}
-    def find_region_id(data, region_name):
+
+    def find_region_id(data: List[Dict[str, str]], region_name: str) -> Optional[int]:
+        """
+        Находит идентификатор региона по его имени.
+
+        Аргументы:
+            data (List[Dict[str, str]]): Список данных о регионах.
+            region_name (str): Имя региона.
+
+        Возвращает:
+            Optional[int]: Идентификатор региона или None, если регион не найден.
+        """
         for item in data:
             if region_name.lower() in item['name'].lower():
                 return item['id']
@@ -55,7 +75,16 @@ def get_regions_by_group():
     return regions_by_group.values()
 
 
-def feth_currency_data(user_agent):
+def fetch_currency_data(user_agent: str) -> Dict[str, float]:
+    """
+    Получает данные о валютах.
+
+    Аргументы:
+        user_agent (str): Заголовок User-Agent для запросов.
+
+    Возвращает:
+        Dict[str, float]: Словарь с кодами валют в качестве ключей и их курсами обмена в качестве значений.
+    """
     params = {
         "locale": "RU"
     }
